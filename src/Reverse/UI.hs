@@ -2,6 +2,7 @@ module Reverse.UI
   ( ViewModel(..), TermEnv, initTerm, redraw, resetScreen
   ) where
 
+import Data.List (intersperse)
 import Reverse.Base
 import System.Console.Terminfo
 import System.Exit (die)
@@ -9,7 +10,7 @@ import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import Text.Printf (FieldFormat(..), FormatAdjustment(..), formatString)
 
 class ViewModel a where
-  content :: a -> [Row String]
+  content :: a -> [Row Cell]
   cursorColumn :: a -> Int
   cursorRow :: a -> Int
 
@@ -22,14 +23,14 @@ indexOr0 i (Row xs) =
 maxColumns :: [Row a] -> Int
 maxColumns = maximum . fmap length
 
-colWidths :: [Row String] -> [Int]
+colWidths :: [Row Cell] -> [Int]
 colWidths x =
-  let ns = fmap (fmap length) x
+  let ns = fmap (fmap (length . cellContents)) x
       lastCol = maxColumns x-1
       colSizes = fmap (\i -> fmap (indexOr0 i) ns) [0..lastCol]
   in fmap maximum colSizes
 
-markWidths :: [Int] -> Row String -> Row (Int, String)
+markWidths :: [Int] -> Row Cell -> Row (Int, Cell)
 markWidths is (Row ss) = Row $ zip is ss
 
 padBy :: Int -> FieldFormat
@@ -43,11 +44,22 @@ padBy x =
               , fmtChar = 's'
               }
 
-padRow :: Row (Int, String) -> Row String
-padRow = fmap (\(i, s) -> formatString s (padBy i) "")
+maybeAccent :: TermEnv -> Cell -> TermOutput -> TermOutput
+maybeAccent env cell =
+  if accented cell
+  then embolden env
+  else id
 
-renderRow :: Row String -> String
-renderRow (Row xs) = unwords xs
+padRow :: TermEnv -> Row (Int, Cell) -> Row TermOutput
+padRow env = fmap \(i, cell) ->
+  let renderedContents = formatString (cellContents cell) (padBy i) ""
+  in maybeAccent env cell $ termText renderedContents
+
+uncolumns :: [TermOutput] -> TermOutput
+uncolumns = mconcat . intersperse (termText " ")
+
+renderRow :: Row TermOutput -> TermOutput
+renderRow (Row xs) = uncolumns xs
 
 cursorPosition :: ViewModel a => a -> [Int] -> Point
 cursorPosition v cols =
@@ -55,14 +67,18 @@ cursorPosition v cols =
         , col = sum $ fmap (+ 1) $ take (cursorColumn v) cols
         }
 
-layout :: [Int] -> [Row String] -> TermOutput
-layout widths =
-  termText . unlines . fmap (renderRow . padRow . markWidths widths)
+unrows :: [TermOutput] -> TermOutput
+unrows = mconcat . intersperse (termText "\n")
+
+layout :: TermEnv -> [Int] -> [Row Cell] -> TermOutput
+layout env widths =
+  unrows . fmap (renderRow . padRow env . markWidths widths)
 
 data TermEnv
   = TermEnv { term :: Terminal
             , cls :: LinesAffected -> TermOutput
             , moveCursorTo :: Point -> TermOutput
+            , embolden :: TermOutput -> TermOutput
             }
 
 requireCapability :: Terminal -> Capability a -> IO a
@@ -77,9 +93,11 @@ initTerm = do
   term' <- setupTermFromEnv
   clearS <- requireCapability term' clearScreen
   moveC <- requireCapability term' cursorAddress
+  withB <- requireCapability term' withBold
   return $ TermEnv { term = term'
                    , cls = clearS
                    , moveCursorTo = moveC
+                   , embolden = withB
                    }
 
 clear :: TermEnv -> TermOutput
@@ -90,7 +108,7 @@ redraw env x =
   let ctnt = content x
       widths = colWidths ctnt
       blankSlate = clear env
-      newContent = layout widths ctnt
+      newContent = layout env widths ctnt
       cursor = moveCursorTo env $ cursorPosition x widths
   in runTermOutput (term env) $ blankSlate <> newContent <> cursor
 
