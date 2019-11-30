@@ -56,6 +56,7 @@ layout xs =
 data TermEnv
   = TermEnv { term :: Terminal
             , cls :: LinesAffected -> TermOutput
+            , moveCursorTo :: Point -> TermOutput
             }
 
 requireCapability :: Terminal -> Capability a -> IO a
@@ -69,9 +70,16 @@ initTerm = do
   hSetBuffering stdin NoBuffering
   term' <- setupTermFromEnv
   clearS <- requireCapability term' clearScreen
-  return $ TermEnv term' clearS
+  moveC <- requireCapability term' cursorAddress
+  return $ TermEnv { term = term'
+                   , cls = clearS
+                   , moveCursorTo = moveC
+                   }
 
 redraw :: Outputtable a => TermEnv -> a -> IO ()
 redraw env x =
   let whatShouldThisBe = 1337
-  in runTermOutput (term env) $ cls env whatShouldThisBe <> layout (output x)
+      blankSlate = cls env whatShouldThisBe
+      newContent = layout $ output x
+      cursor = moveCursorTo env $ Point 0 0
+  in runTermOutput (term env) $ blankSlate <> newContent <> cursor
