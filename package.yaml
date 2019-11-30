@@ -28,6 +28,7 @@ dependencies:
 - parser-combinators
 - split
 - terminfo
+- echo
 
 default-extensions:
 - BlockArguments

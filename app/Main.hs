@@ -1,8 +1,10 @@
 module Main (main) where
 
-import System.Environment (getArgs)
 import Data.List.Split (wordsBy)
+import System.Environment (getArgs)
 import System.Exit (die)
+import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
+import System.IO.Echo (withoutInputEcho)
 
 data Reverse = Reverse [[String]] ([String], String, [String]) [[String]]
 
@@ -49,7 +51,8 @@ loop r = do
   else loop (act MoveDown r)
 
 main :: IO ()
-main = do
+main = withoutInputEcho do
+  hSetBuffering stdin NoBuffering
   args <- getArgs
   case args of
     [input] -> do
