@@ -1,4 +1,4 @@
-module Reverse.UI (Outputtable(..), TermEnv, initTerm, redraw) where
+module Reverse.UI (ViewModel(..), TermEnv, initTerm, redraw) where
 
 import Reverse.Base
 import System.Console.Terminfo
@@ -6,11 +6,10 @@ import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import Text.Printf (FieldFormat(..), FormatAdjustment(..), formatString)
 
-class Outputtable a where
-  output :: a -> [Row String]
-
-rowLength :: Row a -> Int
-rowLength (Row xs) = length xs
+class ViewModel a where
+  content :: a -> [Row String]
+  cursorColumn :: a -> Int
+  cursorRow :: a -> Int
 
 indexOr0 :: Int -> Row Int -> Int
 indexOr0 i (Row xs) =
@@ -19,7 +18,7 @@ indexOr0 i (Row xs) =
   else 0
 
 maxColumns :: [Row a] -> Int
-maxColumns = maximum . fmap rowLength
+maxColumns = maximum . fmap length
 
 colWidths :: [Row String] -> [Int]
 colWidths x =
@@ -48,10 +47,15 @@ padRow = fmap (\(i, s) -> formatString s (padBy i) "")
 renderRow :: Row String -> String
 renderRow (Row xs) = unwords xs
 
-layout :: [Row String] -> TermOutput
-layout xs =
-  let ws = colWidths xs
-  in termText $ unlines $ fmap (renderRow . padRow . markWidths ws) xs
+cursorPosition :: ViewModel a => a -> [Int] -> Point
+cursorPosition v cols =
+  Point { row = cursorRow v
+        , col = sum $ fmap (+ 1) $ take (cursorColumn v) cols
+        }
+
+layout :: [Int] -> [Row String] -> TermOutput
+layout widths =
+  termText . unlines . fmap (renderRow . padRow . markWidths widths)
 
 data TermEnv
   = TermEnv { term :: Terminal
@@ -76,10 +80,12 @@ initTerm = do
                    , moveCursorTo = moveC
                    }
 
-redraw :: Outputtable a => TermEnv -> a -> IO ()
+redraw :: ViewModel a => TermEnv -> a -> IO ()
 redraw env x =
   let whatShouldThisBe = 1337
+      ctnt = content x
+      widths = colWidths ctnt
       blankSlate = cls env whatShouldThisBe
-      newContent = layout $ output x
-      cursor = moveCursorTo env $ Point 0 0
+      newContent = layout widths ctnt
+      cursor = moveCursorTo env $ cursorPosition x widths
   in runTermOutput (term env) $ blankSlate <> newContent <> cursor

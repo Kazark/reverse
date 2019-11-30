@@ -7,3 +7,4 @@ newtype Row a
   deriving Functor
   deriving Semigroup via [a]
   deriving Monoid via [a]
+  deriving Foldable via []
