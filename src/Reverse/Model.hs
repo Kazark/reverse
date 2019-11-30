@@ -1,17 +1,19 @@
 module Reverse.Model (Reverse(..), derive, integrate) where
 
-import Reverse.UI (Outputtable(..), Row(..))
+import Reverse.Base
+import Reverse.UI (Outputtable(..))
 
 -- TODO use Row here?
-data Reverse = Reverse [[String]] ([String], String, [String]) [[String]]
+data Reverse = Reverse [Row String] (Row String, String, Row String) [Row String]
 
-integrate :: ([String], String, [String]) -> [String]
-integrate (befores, current, afters) = reverse befores ++ [current] ++ afters
+integrate :: (Row String, String, Row String) -> Row String
+integrate (Row befores, current, Row afters) =
+  Row $ reverse befores ++ [current] ++ afters
 
-derive :: [String] -> ([String], String, [String])
-derive [] = ([], "", [])
-derive (x : xs) = ([], x, xs)
+derive :: Row String -> (Row String, String, Row String)
+derive (Row []) = (Row [], "", Row [])
+derive (Row (x : xs)) = (Row [], x, Row xs)
 
 instance Outputtable Reverse where
   output (Reverse befores current afters) =
-    fmap Row $ befores ++ [integrate current] ++ afters
+    reverse befores ++ [integrate current] ++ afters

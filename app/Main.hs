@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Reverse.Base
 import Reverse.Model
 import Reverse.Editor
 import Reverse.UI (TermEnv, initTerm, redraw)
@@ -25,7 +26,7 @@ main = withoutInputEcho do
             case lines text of
               [] -> ("", [])
               x : xs -> (x, xs)
-      let r = Reverse [] ([], current, []) $ fmap pure rest
+      let r = Reverse [] (Row [], current, Row []) $ fmap (Row . pure) rest
       env <- initTerm
       loop env r
     _ -> die "Unexpected command-line arguments"

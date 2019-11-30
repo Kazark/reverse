@@ -1,12 +1,10 @@
-{-# LANGUAGE DeriveFunctor #-}
-module Reverse.UI (Row(..), Outputtable(..), TermEnv, initTerm, redraw) where
+module Reverse.UI (Outputtable(..), TermEnv, initTerm, redraw) where
 
+import Reverse.Base
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import Text.Printf (FieldFormat(..), FormatAdjustment(..), formatString)
-
-newtype Row a = Row [a] deriving Functor
 
 class Outputtable a where
   output :: a -> [Row String]
