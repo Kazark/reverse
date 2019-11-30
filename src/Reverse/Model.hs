@@ -1,10 +1,18 @@
-module Reverse.Model (Reverse(..), derive, integrate) where
+module Reverse.Model (Reverse(..), derive, integrate, ingest) where
 
 import Reverse.Base
 import Reverse.UI (ViewModel(..))
 
--- TODO use Row here?
-data Reverse = Reverse [Row String] (Row String, String, Row String) [Row String]
+data Reverse
+  = Reverse [Row String] (Row String, String, Row String) [Row String]
+
+ingest :: String -> Reverse
+ingest text =
+  let (current, rest) =
+        case lines text of
+          [] -> ("", [])
+          x : xs -> (x, xs)
+  in Reverse [] (Row [], current, Row []) $ fmap (Row . pure) rest
 
 integrate :: (Row String, String, Row String) -> Row String
 integrate (Row befores, current, Row afters) =

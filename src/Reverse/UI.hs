@@ -1,4 +1,6 @@
-module Reverse.UI (ViewModel(..), TermEnv, initTerm, redraw) where
+module Reverse.UI
+  ( ViewModel(..), TermEnv, initTerm, redraw, resetScreen
+  ) where
 
 import Reverse.Base
 import System.Console.Terminfo
@@ -80,12 +82,17 @@ initTerm = do
                    , moveCursorTo = moveC
                    }
 
+clear :: TermEnv -> TermOutput
+clear env = cls env 1337 -- What should this number actually be?
+
 redraw :: ViewModel a => TermEnv -> a -> IO ()
 redraw env x =
-  let whatShouldThisBe = 1337
-      ctnt = content x
+  let ctnt = content x
       widths = colWidths ctnt
-      blankSlate = cls env whatShouldThisBe
+      blankSlate = clear env
       newContent = layout widths ctnt
       cursor = moveCursorTo env $ cursorPosition x widths
   in runTermOutput (term env) $ blankSlate <> newContent <> cursor
+
+resetScreen :: TermEnv -> IO ()
+resetScreen env = runTermOutput (term env) $ clear env
