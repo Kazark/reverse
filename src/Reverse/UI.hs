@@ -1,7 +1,8 @@
 module Reverse.UI (Outputtable(..), TermEnv, initTerm, redraw) where
 
-import System.Exit (die)
 import System.Console.Terminfo
+import System.Exit (die)
+import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 
 class Outputtable a where
   output :: a -> TermOutput
@@ -19,6 +20,7 @@ requireCapability t cap =
 
 initTerm :: IO TermEnv
 initTerm = do
+  hSetBuffering stdin NoBuffering
   term' <- setupTermFromEnv
   clearS <- requireCapability term' clearScreen
   return $ TermEnv term' clearS

@@ -5,21 +5,18 @@ import Reverse.Editor
 import Reverse.UI (TermEnv, initTerm, redraw)
 import System.Environment (getArgs)
 import System.Exit (die)
-import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import System.IO.Echo (withoutInputEcho)
 
 loop :: TermEnv -> Reverse -> IO ()
 loop env r = do
-  c <- getChar
-  if c == 'q'
-  then return ()
-  else do
-    redraw env r
-    loop env $ act MoveDown r
+  redraw env r
+  c <- recognizeAction getChar
+  case c of
+    Nothing -> return ()
+    Just action -> loop env $ act action r
 
 main :: IO ()
 main = withoutInputEcho do
-  hSetBuffering stdin NoBuffering
   args <- getArgs
   case args of
     [input] -> do

@@ -1,4 +1,4 @@
-module Reverse.Editor (Action(..), act) where
+module Reverse.Editor (Action(..), act, recognizeAction) where
 
 import Reverse.Model
 import Data.List.Split (wordsBy)
@@ -11,6 +11,18 @@ data Action
   | MoveRight
   -- | Unsplit
   -- | Divide
+
+recognizeAction :: Monad m => m Char -> m (Maybe Action)
+recognizeAction getChr = do
+  c <- getChr
+  case c of
+    'k' -> return $ Just MoveUp
+    'j' -> return $ Just MoveDown
+    'h' -> return $ Just MoveLeft
+    'l' -> return $ Just MoveRight
+    'q' -> return Nothing
+    's' -> fmap (Just . Split) getChr
+    _   -> recognizeAction getChr
 
 act :: Action -> Reverse -> Reverse
 act (Split c) (Reverse beforeL (beforeW, current, afterW) afterL) =
