@@ -1,10 +1,10 @@
 name:                reverse
-version:             0.1.0.0
-github:              "githubuser/reverse"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2019 Author name here"
+version:             0.0.1.0
+github:              "kazark/reverse"
+license:             MIT
+author:              "Keith Pinson"
+maintainer:          "kazark@zoho.com"
+copyright:           "2019 (c) Keith Pinson"
 
 extra-source-files:
 - README.md
@@ -17,10 +17,21 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/reverse#readme>
+description:         Please see the README on GitHub at <https://github.com/kazark/reverse#readme>
 
 dependencies:
+- MissingH
 - base >= 4.7 && < 5
+- containers
+- either
+- megaparsec
+- parser-combinators
+- split
+- terminfo
+
+default-extensions:
+- BlockArguments
+- LambdaCase
 
 library:
   source-dirs: src
