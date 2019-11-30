@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Data.List.Split (wordsBy)
+import System.Console.Terminfo
 import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
@@ -16,6 +17,13 @@ data Action
   | MoveRight
   -- | Unsplit
   -- | Divide
+
+flatten :: Reverse -> [String]
+flatten (Reverse befores current afters) =
+  fmap unwords (befores ++ [integrate current] ++ afters)
+
+render :: Reverse -> TermOutput
+render = termText . unlines . flatten
 
 integrate :: ([String], String, [String]) -> [String]
 integrate (befores, current, afters) = reverse befores ++ [current] ++ afters
@@ -43,12 +51,32 @@ act MoveRight r@(Reverse _ (_, _, []) _) = r
 act MoveRight (Reverse beforeLs (beforeWs, current, afterW : afterWs) afterLs) =
   Reverse beforeLs (current : beforeWs, afterW, afterWs) afterLs
 
-loop :: Reverse -> IO ()
-loop r = do
+data TermEnv
+  = TermEnv { term :: Terminal
+            , cls :: LinesAffected -> TermOutput
+            }
+
+requireCapability :: Terminal -> Capability a -> IO a
+requireCapability t cap =
+  case getCapability t cap of
+    Nothing -> die "Your terminal doesn't support the required capabilities."
+    Just x -> return x
+
+initTerm :: IO TermEnv
+initTerm = do
+  term' <- setupTermFromEnv
+  clearS <- requireCapability term' clearScreen
+  return $ TermEnv term' clearS
+
+loop :: TermEnv -> Reverse -> IO ()
+loop env r = do
   c <- getChar
   if c == 'q'
   then return ()
-  else loop (act MoveDown r)
+  else do
+    runTermOutput (term env) $ cls env 1337
+    runTermOutput (term env) $ render r
+    loop env $ act MoveDown r
 
 main :: IO ()
 main = withoutInputEcho do
@@ -57,9 +85,11 @@ main = withoutInputEcho do
   case args of
     [input] -> do
       text <- readFile input
-      let (current, rest) = case lines text of
-                              [] -> ("", [])
-                              x : xs -> (x, xs)
+      let (current, rest) =
+            case lines text of
+              [] -> ("", [])
+              x : xs -> (x, xs)
       let r = Reverse [] ([], current, []) $ fmap pure rest
-      loop r
+      env <- initTerm
+      loop env r
     _ -> die "Unexpected command-line arguments"
