@@ -1,7 +1,8 @@
 module Reverse.Model
-  ( Reverse(..), derive, integrate, ingest, cursorIndex
+  ( Reverse(..), derive, integrate, ingest, cursorIndex, splitOn
   ) where
 
+import Data.List.Split (wordsBy)
 import Reverse.Base
 import Reverse.UI (ViewModel(..))
 
@@ -10,12 +11,11 @@ data Reverse
 
 ingest :: String -> Reverse
 ingest text =
-  let (current, rest) =
-        case lines text of
-          [] -> ("", [])
+  let (current, afters) =
+        case fmap (splitOn ' ' . normal) $ lines text of
+          [] -> ([normal ""], [])
           x : xs -> (x, xs)
-      afters = fmap (Row . pure . normal) rest
-  in Reverse [] (Row [], normal current, Row []) afters
+  in Reverse [] (derive 0 $ Row current) $ fmap Row afters
 
 integrate :: (Row Cell, Cell, Row Cell) -> Row Cell
 integrate (Row befores, current, Row afters) =
@@ -36,6 +36,11 @@ derive i (Row xs) =
 
 cursorIndex :: (Row Cell, Cell, Row Cell) -> Int
 cursorIndex (befores, _, _) = length befores
+
+splitOn :: Char -> Cell -> [Cell]
+splitOn c current =
+  let mkCell cc = current { cellContents = cc }
+  in fmap mkCell $ wordsBy (== c) $ cellContents current
 
 instance ViewModel Reverse where
   content (Reverse befores current afters) =
