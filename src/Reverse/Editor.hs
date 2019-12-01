@@ -2,7 +2,6 @@ module Reverse.Editor (Action(..), act, recognizeAction) where
 
 import Reverse.Base
 import Reverse.Model
-import Data.List.Split (wordsBy)
 
 data Action
   = Split Char
@@ -32,10 +31,9 @@ act Accent (Reverse beforeL (beforeW, current, afterW) afterL) =
   let newCurrent = current { accented = not (accented current) }
   in Reverse beforeL (beforeW, newCurrent, afterW) afterL
 act (Split c) (Reverse beforeL (beforeW, current, afterW) afterL) =
-  let mkCell cc = current { cellContents = cc }
-      (s, ss) = case wordsBy (== c) $ cellContents current of
+  let (s, ss) = case splitOn c current of
                   [] -> (current, [])
-                  x : xs -> (mkCell x, fmap mkCell xs)
+                  x : xs -> (x, xs)
   in Reverse beforeL (beforeW, s, Row ss <> afterW) afterL
 act MoveUp r@(Reverse [] _ _) = r
 act MoveUp (Reverse (before : befores) current afters) =
