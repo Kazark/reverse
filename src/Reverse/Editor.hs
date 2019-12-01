@@ -1,5 +1,8 @@
-module Reverse.Editor (Action(..), act, recognizeAction) where
+module Reverse.Editor
+  ( Action(..), act, recognizeAction
+  ) where
 
+import Data.Bifunctor (second)
 import Reverse.Base
 import Reverse.Model
 
@@ -12,6 +15,9 @@ data Action
   | Accent
   -- | Unsplit
   -- | Divide
+
+--data Mode
+--  = Normal Normal
 
 recognizeAction :: Monad m => m Char -> m (Maybe Action)
 recognizeAction getChr = do
@@ -26,24 +32,24 @@ recognizeAction getChr = do
     's'  -> fmap (Just . Split) getChr
     _    -> recognizeAction getChr
 
-act :: Action -> Reverse -> Reverse
-act Accent (Reverse beforeL (beforeW, current, afterW) afterL) =
-  let newCurrent = current { accented = not (accented current) }
-  in Reverse beforeL (beforeW, newCurrent, afterW) afterL
-act (Split c) (Reverse beforeL (beforeW, current, afterW) afterL) =
-  let (s, ss) = case splitOn c current of
-                  [] -> (current, [])
-                  x : xs -> (x, xs)
-  in Reverse beforeL (beforeW, s, Row ss <> afterW) afterL
-act MoveUp r@(Reverse [] _ _) = r
-act MoveUp (Reverse (before : befores) current afters) =
-  Reverse befores (derive (cursorIndex current) before) (integrate current : afters)
-act MoveDown r@(Reverse _ _ []) = r
-act MoveDown (Reverse befores current (after : afters)) =
-  Reverse (integrate current : befores) (derive (cursorIndex current) after) afters
-act MoveLeft r@(Reverse _ (Row [], _, _) _) = r
-act MoveLeft (Reverse beforeLs (Row (beforeW : beforeWs), current, afterWs) afterLs) =
-  Reverse beforeLs (Row beforeWs, beforeW, Row [current] <> afterWs) afterLs
-act MoveRight r@(Reverse _ (_, _, Row []) _) = r
-act MoveRight (Reverse beforeLs (beforeWs, current, Row (afterW : afterWs)) afterLs) =
-  Reverse beforeLs (Row [current] <> beforeWs, afterW, Row afterWs) afterLs
+act :: Action -> Normal -> Normal
+act Accent r = second (second (\c -> c { accented = not (accented c) })) r
+act (Split c) r =
+  second (\(Contexted beforeW current afterW) ->
+    let (s, ss) = case splitOn c current of
+                    [] -> (current, [])
+                    x : xs -> (x, xs)
+    in Contexted beforeW s (Row ss <> afterW)
+  ) r
+act MoveUp r@(Contexted [] _ _) = r
+act MoveUp (Contexted (b : bs) current as) =
+  Contexted bs (derive (cursorIndex current) b) (integrate current : as)
+act MoveDown r@(Contexted _ _ []) = r
+act MoveDown (Contexted bs current (a : as)) =
+  Contexted (integrate current : bs) (derive (cursorIndex current) a) as
+act MoveLeft r@(Contexted _ (Contexted (Row []) _ _) _) = r
+act MoveLeft (Contexted beforeLs (Contexted (Row (beforeW : beforeWs)) current afterWs) afterLs) =
+  Contexted beforeLs (Contexted (Row beforeWs) beforeW $ Row [current] <> afterWs) afterLs
+act MoveRight r@(Contexted _ (Contexted _ _ (Row [])) _) = r
+act MoveRight (Contexted beforeLs (Contexted beforeWs current (Row (afterW : afterWs))) afterLs) =
+  Contexted beforeLs (Contexted (Row [current] <> beforeWs) afterW $ Row afterWs) afterLs

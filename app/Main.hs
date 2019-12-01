@@ -7,7 +7,7 @@ import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
 
-loop :: TermEnv -> Reverse -> IO ()
+loop :: TermEnv -> Normal -> IO ()
 loop env r = do
   redraw env r
   c <- recognizeAction getChar

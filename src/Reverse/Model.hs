@@ -1,49 +1,64 @@
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Reverse.Model
-  ( Reverse(..), derive, integrate, ingest, cursorIndex, splitOn
+  ( Normal, Contexted(..)
+  , derive, integrate, ingest, cursorIndex, splitOn
   ) where
 
 import Data.List.Split (wordsBy)
 import Reverse.Base
 import Reverse.UI (ViewModel(..))
+import Data.Bifunctor (Bifunctor(..))
 
-data Reverse
-  = Reverse [Row Cell] (Row Cell, Cell, Row Cell) [Row Cell]
+data Contexted a b
+  = Contexted { befores :: a
+              , focus :: b
+              , afters :: a
+              }
 
-ingest :: String -> Reverse
+instance Bifunctor Contexted where
+  bimap f g ctxt =
+    Contexted (f $ befores ctxt) (g $ focus ctxt) (f $ afters ctxt)
+
+type Normal = Contexted [Row Cell] (Contexted (Row Cell) Cell)
+
+instance ViewModel Normal where
+  content (Contexted b current a) =
+    reverse b ++ [integrate current] ++ a
+  cursorColumn (Contexted _ current _) = cursorIndex current
+  cursorRow (Contexted b _ _) = length b
+
+ingest :: String -> Normal
 ingest text =
-  let (current, afters) =
+  let (current, a) =
         case fmap (splitOn ' ' . normal) $ lines text of
           [] -> ([normal ""], [])
           x : xs -> (x, xs)
-  in Reverse [] (derive 0 $ Row current) $ fmap Row afters
+  in Contexted { befores = []
+               , focus = derive 0 $ Row current
+               , afters = fmap Row a
+               }
 
-integrate :: (Row Cell, Cell, Row Cell) -> Row Cell
-integrate (Row befores, current, Row afters) =
-  Row $ reverse befores ++ [current] ++ afters
+integrate :: Contexted (Row Cell) Cell -> Row Cell
+integrate (Contexted (Row b) current (Row a)) =
+  Row $ reverse b ++ [current] ++ a
 
-softByIndex :: Int -> [Cell] -> ([Cell], Cell, [Cell])
+softByIndex :: Int -> [Cell] -> Contexted [Cell] Cell
 softByIndex = softByIndex' [] where
-  softByIndex' :: [Cell] -> Int -> [Cell] -> ([Cell], Cell, [Cell])
-  softByIndex' befores _ [] = (befores, normal "", [])
-  softByIndex' befores _ [x] = (befores, x, [])
-  softByIndex' befores 0 (x : xs) = (befores, x, xs)
-  softByIndex' befores i (x : xs) = softByIndex' (x : befores) (i - 1) xs
+  softByIndex' :: [Cell] -> Int -> [Cell] -> Contexted [Cell] Cell
+  softByIndex' b _ [] = Contexted b (normal "") []
+  softByIndex' b _ [x] = Contexted b x []
+  softByIndex' b 0 (x : xs) = Contexted b x xs
+  softByIndex' b i (x : xs) = softByIndex' (x : b) (i - 1) xs
 
-derive :: Int -> Row Cell -> (Row Cell, Cell, Row Cell)
-derive i (Row xs) =
-  let (befores, current, after) = softByIndex i xs
-  in (Row befores, current, Row after)
+derive :: Int -> Row Cell -> Contexted (Row Cell) Cell
+derive i (Row xs) = first Row $ softByIndex i xs
 
-cursorIndex :: (Row Cell, Cell, Row Cell) -> Int
-cursorIndex (befores, _, _) = length befores
+cursorIndex :: Contexted (Row Cell) Cell -> Int
+cursorIndex (Contexted b _ _) = length b
 
 splitOn :: Char -> Cell -> [Cell]
 splitOn c current =
   let mkCell cc = current { cellContents = cc }
   in fmap mkCell $ wordsBy (== c) $ cellContents current
-
-instance ViewModel Reverse where
-  content (Reverse befores current afters) =
-    reverse befores ++ [integrate current] ++ afters
-  cursorColumn (Reverse _ current _) = cursorIndex current
-  cursorRow (Reverse befores _ _) = length befores
