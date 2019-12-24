@@ -1,64 +1,36 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Reverse.Model
-  ( Normal, Contexted(..)
-  , derive, integrate, ingest, cursorIndex, splitOn
+  ( Cell(..), Row(..), Model
+  , normal
   ) where
 
-import Data.List.Split (wordsBy)
-import Reverse.Base
-import Reverse.UI (ViewModel(..))
-import Data.Bifunctor (Bifunctor(..))
+import Reverse.Contexted
 
-data Contexted a b
-  = Contexted { befores :: a
-              , focus :: b
-              , afters :: a
-              }
+data Cell
+  = Cell { accented :: Bool
+         , cellContents :: String
+         }
 
-instance Bifunctor Contexted where
-  bimap f g ctxt =
-    Contexted (f $ befores ctxt) (g $ focus ctxt) (f $ afters ctxt)
+normal :: String -> Cell
+normal = Cell False
 
-type Normal = Contexted [Row Cell] (Contexted (Row Cell) Cell)
+instance EmptyFocus Cell where
+  emptyFocus = normal ""
 
-instance ViewModel Normal where
-  content (Contexted b current a) =
-    reverse b ++ [integrate current] ++ a
-  cursorColumn (Contexted _ current _) = cursorIndex current
-  cursorRow (Contexted b _ _) = length b
+newtype Row a
+  = Row [a]
+  deriving Functor
+  deriving Semigroup via [a]
+  deriving Monoid via [a]
+  deriving Foldable via []
 
-ingest :: String -> Normal
-ingest text =
-  let (current, a) =
-        case fmap (splitOn ' ' . normal) $ lines text of
-          [] -> ([normal ""], [])
-          x : xs -> (x, xs)
-  in Contexted { befores = []
-               , focus = derive 0 $ Row current
-               , afters = fmap Row a
-               }
+instance Blur (InContext Cell Cell) (Row Cell) where
+  blur = Row . blur
 
-integrate :: Contexted (Row Cell) Cell -> Row Cell
-integrate (Contexted (Row b) current (Row a)) =
-  Row $ reverse b ++ [current] ++ a
+instance Contexted (InContext Cell Cell) (Row Cell) where
+  focusOn i (Row r) = focusOn i r
 
-softByIndex :: Int -> [Cell] -> Contexted [Cell] Cell
-softByIndex = softByIndex' [] where
-  softByIndex' :: [Cell] -> Int -> [Cell] -> Contexted [Cell] Cell
-  softByIndex' b _ [] = Contexted b (normal "") []
-  softByIndex' b _ [x] = Contexted b x []
-  softByIndex' b 0 (x : xs) = Contexted b x xs
-  softByIndex' b i (x : xs) = softByIndex' (x : b) (i - 1) xs
-
-derive :: Int -> Row Cell -> Contexted (Row Cell) Cell
-derive i (Row xs) = first Row $ softByIndex i xs
-
-cursorIndex :: Contexted (Row Cell) Cell -> Int
-cursorIndex (Contexted b _ _) = length b
-
-splitOn :: Char -> Cell -> [Cell]
-splitOn c current =
-  let mkCell cc = current { cellContents = cc }
-  in fmap mkCell $ wordsBy (== c) $ cellContents current
+type Model a = InContext (Row Cell) (InContext Cell a)

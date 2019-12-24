@@ -1,16 +1,16 @@
 module Main (main) where
 
-import Reverse.Model
-import Reverse.Editor
+import Reverse.Editor (Action, Mode, ingest)
+import Reverse.Editor.Mode (recognizeAction, act)
 import Reverse.UI (TermEnv, initTerm, redraw, resetScreen)
 import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
 
-loop :: TermEnv -> Normal -> IO ()
+loop :: TermEnv -> Mode -> IO ()
 loop env r = do
   redraw env r
-  c <- recognizeAction getChar
+  c <- recognizeAction getChar :: IO (Maybe Action)
   case c of
     Nothing -> resetScreen env
     Just action -> loop env $ act action r

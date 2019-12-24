@@ -3,7 +3,7 @@ module Reverse.UI
   ) where
 
 import Data.List (intersperse)
-import Reverse.Base
+import Reverse.Model (Row(..), Cell(..))
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
