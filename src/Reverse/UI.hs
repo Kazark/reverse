@@ -1,8 +1,11 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Reverse.UI
   ( ViewModel(..), TermEnv, initTerm, redraw, resetScreen
   ) where
 
+import qualified Data.List.NonEmpty as NEL
 import Data.List (intersperse)
+import Reverse.Contexted
 import Reverse.Model (Row(..), Cell(..))
 import System.Console.Terminfo
 import System.Exit (die)
@@ -13,6 +16,21 @@ class ViewModel a where
   content :: a -> [Row Cell]
   cursorColumn :: a -> Int
   cursorRow :: a -> Int
+
+instance ViewModel (InContext (Row Cell) (InContext Cell Cell)) where
+  content = blur
+  cursorColumn = focusedOn . current
+  cursorRow = length . befores
+
+instance ViewModel (InContext (Row Cell) (InContext Cell (NEL.NonEmpty Cell))) where
+  content =
+    blur . fmap (\c ->
+      c { current = NEL.head $ current c
+        , afters = NEL.tail (current c) <> afters c
+        }
+    )
+  cursorColumn = focusedOn . current
+  cursorRow = length . befores
 
 indexOr0 :: Int -> Row Int -> Int
 indexOr0 i (Row xs) =

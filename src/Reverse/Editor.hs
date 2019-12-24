@@ -1,9 +1,17 @@
-module Reverse.Editor ( Action, Mode, ingest ) where
+{-# LANGUAGE RankNTypes #-}
+module Reverse.Editor (runEditor) where
 
-import Reverse.Editor.NormalMode (ingest)
-import qualified Reverse.Editor.NormalMode as NormalMode
+import Control.Monad (forM_)
+import Reverse.Editor.Mode
+import Reverse.Editor.NormalMode
+import Reverse.Editor.CombineMode
+import Reverse.UI (ViewModel)
 
-type Action = NormalMode.Action
-  -- | Divide
-
-type Mode = NormalMode.Normal
+runEditor :: Monad z => (forall s. ViewModel s => ModeUI z s) -> String -> z ()
+runEditor ui = runNormal . ingest where
+  runNormal state = do
+    o <- runMode normalMode ui state
+    forM_ o runCombine
+  runCombine state = do
+    o <- runMode combineMode ui state
+    runNormal o

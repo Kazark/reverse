@@ -17,15 +17,18 @@ oneEighty :: InContext a b -> InContext a b
 oneEighty c = c { befores = afters c, afters = befores c }
 
 -- | Move towards the afters
-after :: InContext a a -> InContext a a
+after :: (Focused b, Contexted b a) => InContext a b -> InContext a b
 after c =
   case afters c of
     [] -> c
     newFocus : newAfters ->
-      InContext (current c : befores c) newFocus newAfters
+      InContext { befores = blur (current c) : befores c
+                , current = focusOn (focusedOn (current c)) newFocus
+                , afters = newAfters
+                }
 
 -- | Move towards the befores
-before :: InContext a a -> InContext a a
+before :: (Focused b, Contexted b a) => InContext a b -> InContext a b
 before = oneEighty . after . oneEighty
 
 instance Bifunctor InContext where

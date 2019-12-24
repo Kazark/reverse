@@ -1,19 +1,18 @@
 module Main (main) where
 
-import Reverse.Editor (Action, Mode, ingest)
-import Reverse.Editor.Mode (recognizeAction, act)
-import Reverse.UI (TermEnv, initTerm, redraw, resetScreen)
+import Reverse.Editor
+import Reverse.Editor.Mode (ModeUI(..))
+import Reverse.UI (ViewModel, TermEnv, initTerm, resetScreen)
+import qualified Reverse.UI as UI
 import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
 
-loop :: TermEnv -> Mode -> IO ()
-loop env r = do
-  redraw env r
-  c <- recognizeAction getChar :: IO (Maybe Action)
-  case c of
-    Nothing -> resetScreen env
-    Just action -> loop env $ act action r
+modeUI :: ViewModel s => TermEnv -> ModeUI IO s
+modeUI env =
+  ModeUI { redraw = UI.redraw env
+         , userInputChar = getChar
+         }
 
 main :: IO ()
 main = withoutInputEcho do
@@ -24,5 +23,6 @@ main = withoutInputEcho do
   case args of
     [input] -> do
       text <- readFile input
-      loop env $ ingest text
+      runEditor (modeUI env) text
+      resetScreen env
     _ -> die "Unexpected command-line arguments"
