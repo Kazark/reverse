@@ -1,36 +1,31 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Reverse.UI
-  ( ViewModel(..), TermEnv, initTerm, redraw, resetScreen
+  ( ViewModel(..), TermEnv, CursorInRow(..)
+  , initTerm, redraw, resetScreen
   ) where
 
-import qualified Data.List.NonEmpty as NEL
 import Data.List (intersperse)
-import Reverse.Contexted
 import Reverse.Model (Row(..), Cell(..))
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import Text.Printf (FieldFormat(..), FormatAdjustment(..), formatString)
 
-class ViewModel a where
-  content :: a -> [Row Cell]
-  cursorColumn :: a -> Int
-  cursorRow :: a -> Int
+data CursorInRow
+  = NormalCursor Int
+  | SelectionCursor Int Int
 
-instance ViewModel (InContext (Row Cell) (InContext Cell Cell)) where
-  content = blur
-  cursorColumn = focusedOn . current
-  cursorRow = length . befores
+data ViewModel = ViewModel
+  { content :: [Row Cell]
+  , cursorInRow :: CursorInRow
+  , cursorRow :: Int
+  }
 
-instance ViewModel (InContext (Row Cell) (InContext Cell (NEL.NonEmpty Cell))) where
-  content =
-    blur . fmap (\c ->
-      c { current = NEL.head $ current c
-        , afters = NEL.tail (current c) <> afters c
-        }
-    )
-  cursorColumn = focusedOn . current
-  cursorRow = length . befores
+cursorColumn :: ViewModel -> Int
+cursorColumn x =
+  case cursorInRow x of
+    NormalCursor i -> i
+    SelectionCursor _ i -> i
 
 indexOr0 :: Int -> Row Int -> Int
 indexOr0 i (Row xs) =
@@ -79,7 +74,7 @@ uncolumns = mconcat . intersperse (termText " ")
 renderRow :: Row TermOutput -> TermOutput
 renderRow (Row xs) = uncolumns xs
 
-cursorPosition :: ViewModel a => a -> [Int] -> Point
+cursorPosition :: ViewModel -> [Int] -> Point
 cursorPosition v cols =
   Point { row = cursorRow v
         , col = sum $ fmap (+ 1) $ take (cursorColumn v) cols
@@ -121,7 +116,7 @@ initTerm = do
 clear :: TermEnv -> TermOutput
 clear env = cls env 1337 -- What should this number actually be?
 
-redraw :: ViewModel a => TermEnv -> a -> IO ()
+redraw :: TermEnv -> ViewModel -> IO ()
 redraw env x =
   let ctnt = content x
       widths = colWidths ctnt

@@ -8,7 +8,7 @@ import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
 
-modeUI :: ViewModel s => TermEnv -> ModeUI IO s
+modeUI :: TermEnv -> ModeUI IO ViewModel
 modeUI env =
   ModeUI { redraw = UI.redraw env
          , userInputChar = getChar
