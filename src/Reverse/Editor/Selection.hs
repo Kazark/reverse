@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Reverse.Editor.Selection
-  ( Selection, select1, deselect, forward, backward
+  ( Selection, select1, deselect, forward, backward, selectionOffset
   ) where
 
 import           Data.List.AtLeast2 (AtLeast2)
@@ -58,3 +58,12 @@ forward c =
 
 backward :: InContext a (Selection a) -> InContext a (Selection a)
 backward = oneEighty . fmap redirect . forward . fmap redirect . oneEighty
+
+polarity :: Direction -> Int
+polarity = \case
+  Backward -> -1
+  Forward -> 1
+
+selectionOffset :: Selection a -> Int
+selectionOffset (Selected1 _) = 1
+selectionOffset (Selection d xs) = polarity d * length xs

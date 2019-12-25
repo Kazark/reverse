@@ -1,5 +1,5 @@
 module Reverse.UI
-  ( ViewModel(..), TermEnv, CursorInRow(..)
+  ( ViewModel(..), TermEnv
   , initTerm, redraw, resetScreen
   ) where
 
@@ -16,27 +16,12 @@ data UICell =
          , selected :: Bool
          }
 
-data CursorInRow
-  = NormalCursor Int
-  | SelectionCursor Int Int
-
 data ViewModel = ViewModel
   { content :: [Row Cell]
-  , cursorInRow :: CursorInRow
+  , cursorColumn :: Int
   , cursorRow :: Int
+  , selection :: Maybe (Int, Int)
   }
-
-cursorColumn :: ViewModel -> Int
-cursorColumn x =
-  case cursorInRow x of
-    NormalCursor i -> i
-    SelectionCursor _ i -> i
-
-selection :: ViewModel -> Maybe (Int, Int)
-selection vm =
-  case cursorInRow vm of
-    SelectionCursor from to -> Just (from, to)
-    _ -> Nothing
 
 indexOr0 :: Int -> Row Int -> Int
 indexOr0 i (Row xs) =
@@ -118,9 +103,9 @@ uiCells vm = do
   return $ uiRow r maybeSel
   where
     uiRow r Nothing = fmap (\c -> UICell c False) r
-    uiRow (Row r) (Just (from, to)) = Row do
+    uiRow (Row r) (Just (from, offset)) = Row do
       let befores' = take from $ repeat False
-      let sel = take (to - from + 1) $ repeat True
+      let sel = take offset $ repeat True
       let sels = befores' <> sel <> repeat False
       (c, s) <- zip r sels
       return $ UICell c s
