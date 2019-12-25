@@ -1,15 +1,20 @@
-{-# LANGUAGE FlexibleInstances #-}
 module Reverse.UI
   ( ViewModel(..), TermEnv, CursorInRow(..)
   , initTerm, redraw, resetScreen
   ) where
 
+import Data.Function ((&))
 import Data.List (intersperse)
 import Reverse.Model (Row(..), Cell(..))
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
 import Text.Printf (FieldFormat(..), FormatAdjustment(..), formatString)
+
+data UICell =
+  UICell { cell :: Cell
+         , selected :: Bool
+         }
 
 data CursorInRow
   = NormalCursor Int
@@ -27,6 +32,12 @@ cursorColumn x =
     NormalCursor i -> i
     SelectionCursor _ i -> i
 
+selection :: ViewModel -> Maybe (Int, Int)
+selection vm =
+  case cursorInRow vm of
+    SelectionCursor from to -> Just (from, to)
+    _ -> Nothing
+
 indexOr0 :: Int -> Row Int -> Int
 indexOr0 i (Row xs) =
   if i < length xs
@@ -43,7 +54,7 @@ colWidths x =
       colSizes = fmap (\i -> fmap (indexOr0 i) ns) [0..lastCol]
   in fmap maximum colSizes
 
-markWidths :: [Int] -> Row Cell -> Row (Int, Cell)
+markWidths :: [Int] -> Row UICell -> Row (Int, UICell)
 markWidths is (Row ss) = Row $ zip is ss
 
 padBy :: Int -> FieldFormat
@@ -58,15 +69,24 @@ padBy x =
               }
 
 maybeAccent :: TermEnv -> Cell -> TermOutput -> TermOutput
-maybeAccent env cell =
-  if accented cell
+maybeAccent env c =
+  if accented c
   then embolden env
   else id
 
-padRow :: TermEnv -> Row (Int, Cell) -> Row TermOutput
-padRow env = fmap \(i, cell) ->
-  let renderedContents = formatString (cellContents cell) (padBy i) ""
-  in maybeAccent env cell $ termText renderedContents
+maybeInvert :: TermEnv -> UICell -> TermOutput -> TermOutput
+maybeInvert env c =
+  if selected c
+  then invert env
+  else id
+
+padRow :: TermEnv -> Row (Int, UICell) -> Row TermOutput
+padRow env =
+  fmap \(i, c) ->
+    formatString (cellContents $ cell c) (padBy i) ""
+    & termText
+    & maybeAccent env (cell c)
+    & maybeInvert env c
 
 uncolumns :: [TermOutput] -> TermOutput
 uncolumns = mconcat . intersperse (termText " ")
@@ -74,24 +94,43 @@ uncolumns = mconcat . intersperse (termText " ")
 renderRow :: Row TermOutput -> TermOutput
 renderRow (Row xs) = uncolumns xs
 
+columnBeginsAt :: [Int] -> Int -> Int
+columnBeginsAt cols colN = sum $ fmap (+ 1) $ take colN cols
+
 cursorPosition :: ViewModel -> [Int] -> Point
 cursorPosition v cols =
   Point { row = cursorRow v
-        , col = sum $ fmap (+ 1) $ take (cursorColumn v) cols
+        , col = columnBeginsAt cols $ cursorColumn v
         }
 
 unrows :: [TermOutput] -> TermOutput
 unrows = mconcat . intersperse (termText "\n")
 
-layout :: TermEnv -> [Int] -> [Row Cell] -> TermOutput
+layout :: TermEnv -> [Int] -> [Row UICell] -> TermOutput
 layout env widths =
   unrows . fmap (renderRow . padRow env . markWidths widths)
+
+uiCells :: ViewModel -> [Row UICell]
+uiCells vm = do
+  let befores = take (cursorRow vm) $ repeat Nothing
+  let maybeSels = befores <> [selection vm] <> repeat Nothing
+  (r, maybeSel) <- zip (content vm) maybeSels
+  return $ uiRow r maybeSel
+  where
+    uiRow r Nothing = fmap (\c -> UICell c False) r
+    uiRow (Row r) (Just (from, to)) = Row do
+      let befores' = take from $ repeat False
+      let sel = take (to - from + 1) $ repeat True
+      let sels = befores' <> sel <> repeat False
+      (c, s) <- zip r sels
+      return $ UICell c s
 
 data TermEnv
   = TermEnv { term :: Terminal
             , cls :: LinesAffected -> TermOutput
             , moveCursorTo :: Point -> TermOutput
             , embolden :: TermOutput -> TermOutput
+            , invert :: TermOutput -> TermOutput
             }
 
 requireCapability :: Terminal -> Capability a -> IO a
@@ -107,10 +146,12 @@ initTerm = do
   clearS <- requireCapability term' clearScreen
   moveC <- requireCapability term' cursorAddress
   withB <- requireCapability term' withBold
+  rev <- requireCapability term' reverseOn
   return $ TermEnv { term = term'
                    , cls = clearS
                    , moveCursorTo = moveC
                    , embolden = withB
+                   , invert = \x -> rev <> x <> rev
                    }
 
 clear :: TermEnv -> TermOutput
@@ -118,10 +159,9 @@ clear env = cls env 1337 -- What should this number actually be?
 
 redraw :: TermEnv -> ViewModel -> IO ()
 redraw env x =
-  let ctnt = content x
-      widths = colWidths ctnt
+  let widths = colWidths $ content x
       blankSlate = clear env
-      newContent = layout env widths ctnt
+      newContent = layout env widths $ uiCells x
       cursor = moveCursorTo env $ cursorPosition x widths
   in runTermOutput (term env) $ blankSlate <> newContent <> cursor
 
