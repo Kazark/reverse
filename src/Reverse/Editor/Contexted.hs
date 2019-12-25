@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Reverse.Contexted
+module Reverse.Editor.Contexted
   ( InContext(..), EmptyFocus(..), Blur(..), Focused(..), Contexted(..)
   , oneEighty, after, before
   ) where

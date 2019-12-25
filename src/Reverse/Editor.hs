@@ -3,11 +3,11 @@ module Reverse.Editor (runEditor) where
 import Control.Monad (forM_)
 import Data.Functor.Contravariant (contramap)
 import qualified Data.List.NonEmpty as NEL
-import Reverse.Contexted
 import Reverse.Editor.CombineMode
+import Reverse.Editor.Contexted
 import Reverse.Editor.Mode
+import Reverse.Editor.Model
 import Reverse.Editor.NormalMode
-import Reverse.Model
 import Reverse.UI (ViewModel(..), CursorInRow(..))
 
 normalViewModel :: NormalModel -> ViewModel

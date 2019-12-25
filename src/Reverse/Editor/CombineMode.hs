@@ -1,10 +1,10 @@
 module Reverse.Editor.CombineMode ( CombineInput, combineMode ) where
 
 import qualified Data.List.NonEmpty as NEL
-import           Reverse.Contexted
+import           Reverse.Editor.Contexted
 import           Reverse.Editor.Delimiter
 import           Reverse.Editor.Mode
-import           Reverse.Model
+import           Reverse.Editor.Model
 
 data CombineInput
   = Unsplit Delim

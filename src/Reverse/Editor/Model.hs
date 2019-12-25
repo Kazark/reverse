@@ -2,13 +2,13 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Reverse.Model
+module Reverse.Editor.Model
   ( Cell(..), Row(..), Model, NormalModel, CombineModel
   , normal
   ) where
 
 import Data.List.NonEmpty (NonEmpty)
-import Reverse.Contexted
+import Reverse.Editor.Contexted
 
 data Cell
   = Cell { accented :: Bool

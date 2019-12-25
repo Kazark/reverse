@@ -1,10 +1,10 @@
 module Reverse.Editor.NormalMode ( NormalInput, normalMode, ingest ) where
 
 import Data.List.Split (wordsBy)
-import Reverse.Contexted
+import Reverse.Editor.Contexted
 import Reverse.Editor.Delimiter
 import Reverse.Editor.Mode
-import Reverse.Model
+import Reverse.Editor.Model
 
 data Action
   = Split Delim

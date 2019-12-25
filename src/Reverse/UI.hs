@@ -5,7 +5,7 @@ module Reverse.UI
 
 import Data.Function ((&))
 import Data.List (intersperse)
-import Reverse.Model (Row(..), Cell(..))
+import Reverse.Editor.Model (Row(..), Cell(..))
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
