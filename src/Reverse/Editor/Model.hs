@@ -7,7 +7,7 @@ module Reverse.Editor.Model
   , normal
   ) where
 
-import Data.List.NonEmpty (NonEmpty)
+import Reverse.Editor.Selection (Selection)
 import Reverse.Editor.Contexted
 
 data Cell
@@ -40,4 +40,4 @@ instance Contexted (InContext Cell Cell) (Row Cell) where
 
 type Model a = InContext (Row Cell) (InContext Cell a)
 type NormalModel = Model Cell
-type CombineModel = Model (NonEmpty Cell)
+type CombineModel = Model (Selection Cell)

@@ -5,6 +5,8 @@ module Reverse.Editor.Selection
 
 import           Data.List.AtLeast2 (AtLeast2)
 import qualified Data.List.AtLeast2 as AL2
+import           Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NEL
 import           Reverse.Editor.Contexted
 
 data Direction = Backward | Forward
@@ -22,13 +24,13 @@ data Selection a
 select1 :: a -> Selection a
 select1 = Selected1
 
-direct :: Direction -> [a] -> [a]
-direct Backward = reverse
+direct :: Direction -> NonEmpty a -> NonEmpty a
+direct Backward = NEL.reverse
 direct Forward = id
 
-deselect :: Selection a -> [a]
-deselect (Selected1 x) = [x]
-deselect (Selection d xs) = direct d $ AL2.toList xs
+deselect :: Selection a -> NonEmpty a
+deselect (Selected1 x) = pure x
+deselect (Selection d xs) = direct d $ AL2.toNonEmpty xs
 
 redirect :: Selection a -> Selection a
 redirect (Selection d xs) = Selection (opposite d) xs

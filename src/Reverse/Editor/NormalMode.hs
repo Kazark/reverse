@@ -5,6 +5,7 @@ import Reverse.Editor.Contexted
 import Reverse.Editor.Delimiter
 import Reverse.Editor.Mode
 import Reverse.Editor.Model
+import Reverse.Editor.Selection (select1)
 
 data Action
   = Split Delim
@@ -50,7 +51,7 @@ act MoveLeft ctxtd = fmap before ctxtd
 act MoveRight ctxtd = fmap after ctxtd
 
 initCombine :: NormalModel -> CombineModel
-initCombine = fmap (fmap pure)
+initCombine = fmap (fmap select1)
 
 react' :: NormalInput -> NormalModel
        -> Either (Maybe CombineModel) NormalModel
