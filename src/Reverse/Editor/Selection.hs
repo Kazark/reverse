@@ -14,7 +14,7 @@ select1 :: a -> Selection a
 select1 = S . pure
 
 deselect :: Selection a -> NonEmpty a
-deselect (S x) = x
+deselect (S x) = NEL.reverse x
 
 extend :: a -> Selection a -> Selection a
 extend x (S xs) = S $ NEL.cons x xs

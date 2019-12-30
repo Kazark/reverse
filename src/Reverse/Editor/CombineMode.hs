@@ -15,15 +15,18 @@ data CombineInput
   | ExtendSelectionRight
   | Cancel
 
-cancel1 :: InContext a (Selection a) -> InContext a a
-cancel1 c =
+cancel' :: InContext a (Selection a) -> InContext a a
+cancel' c =
   let xs = deselect $ current c
   in c { current = NEL.head xs
        , afters = NEL.tail xs <> afters c
        }
 
 cancel :: CombineModel -> NormalModel
-cancel = fmap cancel1
+cancel = fmap cancel'
+
+unsplit :: Delim -> InContext Cell (Selection Cell) -> InContext Cell Cell
+unsplit d c = c { current = combineWith d $ NEL.toList $ deselect $ current c }
 
 recognize' :: Monad z => z Char -> z CombineInput
 recognize' getChr = do
@@ -39,7 +42,9 @@ recognize' getChr = do
 
 react' :: CombineInput -> CombineModel -> Either NormalModel CombineModel
 react' Cancel model = Left $ cancel model
-react' _ {- TODO -} model = Right model
+react' (Unsplit d) model = Left $ fmap (unsplit d) model
+react' ExtendSelectionLeft model = Right $ fmap backward model
+react' ExtendSelectionRight model = Right $ fmap forward model
 
 combineMode :: Monad z => Mode z CombineModel NormalModel CombineInput
 combineMode =

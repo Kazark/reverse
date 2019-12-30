@@ -7,6 +7,7 @@ import Reverse.Editor.Contexted
 import Reverse.Editor.Mode
 import Reverse.Editor.Model
 import Reverse.Editor.NormalMode
+import Reverse.Editor.Selection (selectionOffset)
 import Reverse.UI (ViewModel(..))
 
 normalViewModel :: NormalModel -> ViewModel
@@ -19,14 +20,12 @@ normalViewModel x =
 
 combineViewModel :: CombineModel -> ViewModel
 combineViewModel x =
-  -- Much bad
-  -- So dysfunction
-  -- Very crap
-  -- Wow
   ViewModel { content = blur $ cancel x
             , cursorColumn = focusedOn $ current x
             , cursorRow = length $ befores x
-            , selection = Just (focusedOn $ current x, 1)
+            , selection = Just ( focusedOn $ current x
+                               , selectionOffset $ current $ current x
+                               )
             }
 
 runEditor :: Monad z => ModeUI z ViewModel -> String -> z ()

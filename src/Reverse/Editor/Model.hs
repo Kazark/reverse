@@ -4,11 +4,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Reverse.Editor.Model
   ( Cell(..), Row(..), Model, NormalModel, CombineModel
-  , normal
+  , normal, combineWith
   ) where
 
-import Reverse.Editor.Selection (Selection)
+import Data.List (intercalate)
 import Reverse.Editor.Contexted
+import Reverse.Editor.Delimiter (Delim, delimToChar)
+import Reverse.Editor.Selection (Selection)
 
 data Cell
   = Cell { accented :: Bool
@@ -17,6 +19,12 @@ data Cell
 
 normal :: String -> Cell
 normal = Cell False
+
+combineWith :: Delim -> [Cell] -> Cell
+combineWith d cs =
+  Cell { accented = all accented cs
+       , cellContents = intercalate [delimToChar d] $ fmap cellContents cs
+       }
 
 instance EmptyFocus Cell where
   emptyFocus = normal ""
