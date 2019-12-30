@@ -2,7 +2,8 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor #-}
 module Data.List.AtLeast2
-  ( atLeast2, AtLeast2(..), toNonEmpty, toList, exactly2, cons, uncons
+  ( AtLeast2(..)
+  , atLeast2, toNonEmpty, ofNonEmpty, toList, exactly2, cons, uncons
   ) where
 
 import Data.List.NonEmpty (NonEmpty((:|)))
@@ -17,6 +18,11 @@ data AtLeast2 a
 atLeast2 :: [a] -> Maybe (AtLeast2 a)
 atLeast2 (x : x' : xs) = Just $ x ::| x' :| xs
 atLeast2 _ = Nothing
+
+ofNonEmpty :: NonEmpty a -> Maybe (AtLeast2 a)
+ofNonEmpty (x :| xs) = do
+  xs' <- NEL.nonEmpty xs
+  return $ x ::| xs'
 
 toNonEmpty :: AtLeast2 a -> NonEmpty a
 toNonEmpty (x ::| xs) = x :| NEL.toList xs
