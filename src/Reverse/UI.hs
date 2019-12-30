@@ -62,7 +62,7 @@ maybeAccent env c =
 maybeInvert :: TermEnv -> UICell -> TermOutput -> TermOutput
 maybeInvert env c =
   if selected c
-  then invert env
+  then markSelected env
   else id
 
 padRow :: TermEnv -> Row (Int, UICell) -> Row TermOutput
@@ -115,7 +115,7 @@ data TermEnv
             , cls :: LinesAffected -> TermOutput
             , moveCursorTo :: Point -> TermOutput
             , embolden :: TermOutput -> TermOutput
-            , invert :: TermOutput -> TermOutput
+            , markSelected :: TermOutput -> TermOutput
             }
 
 requireCapability :: Terminal -> Capability a -> IO a
@@ -131,12 +131,12 @@ initTerm = do
   clearS <- requireCapability term' clearScreen
   moveC <- requireCapability term' cursorAddress
   withB <- requireCapability term' withBold
-  rev <- requireCapability term' reverseOn
+  markS <- requireCapability term' withUnderline
   return $ TermEnv { term = term'
                    , cls = clearS
                    , moveCursorTo = moveC
                    , embolden = withB
-                   , invert = \x -> rev <> x <> rev
+                   , markSelected = markS
                    }
 
 clear :: TermEnv -> TermOutput

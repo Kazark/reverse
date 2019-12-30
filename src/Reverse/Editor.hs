@@ -20,13 +20,13 @@ normalViewModel x =
 combineViewModel :: CombineModel -> ViewModel
 combineViewModel x =
   -- Much bad
-  -- So disfunction
+  -- So dysfunction
   -- Very crap
   -- Wow
   ViewModel { content = blur $ cancel x
             , cursorColumn = focusedOn $ current x
             , cursorRow = length $ befores x
-            , selection = Just (focusedOn $ current x, focusedOn (current x) + 2)
+            , selection = Just (focusedOn $ current x, 1)
             }
 
 runEditor :: Monad z => ModeUI z ViewModel -> String -> z ()
