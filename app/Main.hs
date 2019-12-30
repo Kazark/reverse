@@ -7,6 +7,7 @@ import qualified Reverse.UI as UI
 import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
+import Reverse.Help (help)
 
 modeUI :: TermEnv -> ModeUI IO ViewModel
 modeUI env =
@@ -15,13 +16,12 @@ modeUI env =
          }
 
 main :: IO ()
-main = withoutInputEcho do
-  -- Do the terminal initialization as the very first thing, so we know
-  -- immediately if there are problems.
-  env <- initTerm
+main = do
   args <- getArgs
   case args of
-    [input] -> do
+    ["--help"] -> help
+    [input] -> withoutInputEcho do
+      env <- initTerm
       text <- readFile input
       runEditor (modeUI env) text
       resetScreen env
