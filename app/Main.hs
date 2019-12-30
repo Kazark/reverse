@@ -7,7 +7,7 @@ import qualified Reverse.UI as UI
 import System.Environment (getArgs)
 import System.Exit (die)
 import System.IO.Echo (withoutInputEcho)
-import Reverse.Help (help)
+import Reverse.Help (printHelp)
 
 modeUI :: TermEnv -> ModeUI IO ViewModel
 modeUI env =
@@ -19,7 +19,7 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    ["--help"] -> help
+    ["--help"] -> printHelp
     [input] -> withoutInputEcho do
       env <- initTerm
       text <- readFile input
