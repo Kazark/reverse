@@ -1,5 +1,5 @@
 module Reverse.Editor.CombineMode
-  ( CombineInput, combineMode, cancel
+  ( CombineInput, combineMode, cancel, help
   ) where
 
 import qualified Data.List.NonEmpty as NEL
@@ -8,6 +8,7 @@ import           Reverse.Editor.Delimiter
 import           Reverse.Editor.Mode
 import           Reverse.Editor.Model
 import           Reverse.Editor.Selection
+import           Reverse.ModeHelp
 
 data CombineInput
   = Unsplit Delim
@@ -41,13 +42,22 @@ recognize' getChr = do
         Nothing -> recognize' getChr
 
 react' :: CombineInput -> CombineModel -> Either NormalModel CombineModel
-react' Cancel model = Left $ cancel model
-react' (Unsplit d) model = Left $ fmap (unsplit d) model
-react' ExtendSelectionLeft model = Right $ fmap backward model
-react' ExtendSelectionRight model = Right $ fmap forward model
+react' = \case
+  Cancel -> Left . cancel
+  (Unsplit d) -> Left . fmap (unsplit d)
+  ExtendSelectionLeft -> Right . fmap backward
+  ExtendSelectionRight -> Right . fmap forward
 
 combineMode :: Monad z => Mode z CombineModel NormalModel CombineInput
 combineMode =
   Mode { recognize = recognize'
        , react = react'
        }
+
+help :: ModeHelp
+help =
+  ModeHelp { modeName = "combine"
+           , describe = fmap inputHelp . recognize'
+           } where
+  inputHelp :: CombineInput -> String
+  inputHelp _ = "..."

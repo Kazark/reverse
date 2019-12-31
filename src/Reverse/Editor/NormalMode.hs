@@ -1,4 +1,6 @@
-module Reverse.Editor.NormalMode ( NormalInput, normalMode, ingest ) where
+module Reverse.Editor.NormalMode
+  ( NormalInput, normalMode, ingest, help
+  ) where
 
 import Data.List.Split (wordsBy)
 import Reverse.Editor.Contexted
@@ -6,6 +8,7 @@ import Reverse.Editor.Delimiter
 import Reverse.Editor.Mode
 import Reverse.Editor.Model
 import Reverse.Editor.Selection (select1)
+import Reverse.ModeHelp
 
 data Action
   = Split Delim
@@ -86,3 +89,10 @@ normalMode =
        , react = react'
        }
 
+help :: ModeHelp
+help =
+  ModeHelp { modeName = "normal"
+           , describe = fmap inputHelp . recognize'
+           } where
+  inputHelp :: NormalInput -> String
+  inputHelp _ = "..."

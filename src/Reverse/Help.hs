@@ -1,7 +1,12 @@
 module Reverse.Help (printHelp) where
 
-import Data.Char (toUpper)
-import Data.Foldable (traverse_)
+import           Data.Char (toUpper)
+import           Data.Foldable (traverse_)
+import qualified Reverse.Editor.CombineMode as Combine
+import qualified Reverse.Editor.NormalMode as Normal
+import           Reverse.ModeHelp
+
+type Help = [ModeHelp]
 
 name :: String
 name = "Reverse"
@@ -9,21 +14,15 @@ name = "Reverse"
 tagline :: String
 tagline = "a model editor for fitting free verse to a rhythm"
 
-data ModeHelp
-  = ModeHelp { modeName :: String }
-
-type Help = [ModeHelp]
-
 formatModeHelp :: ModeHelp -> [String]
 formatModeHelp h =
-  [ fmap toUpper (modeName h) <> " MODE"
-  , "..."
-  ]
+  fmap toUpper (modeName h) <> " MODE"
+  : describe h [' '..'~']
 
 help :: Help
 help =
-  [ ModeHelp { modeName = "Normal" }
-  , ModeHelp { modeName = "Combine" }
+  [ Normal.help
+  , Combine.help
   ]
 
 format :: Help -> [String]
