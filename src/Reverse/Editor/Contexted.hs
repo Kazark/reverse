@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Reverse.Editor.Contexted
   ( InContext(..), EmptyFocus(..), Blur(..), Focused(..), Contexted(..)
-  , oneEighty, after, before
+  , oneEighty, after, before, splitWith
   ) where
 
 import Data.Bifunctor (Bifunctor(..))
@@ -71,3 +71,9 @@ instance EmptyFocus a => Contexted (InContext a a) [a] where
     focusOn' b 0 (x : xs) = InContext b x xs
     focusOn' b i (x : xs) = focusOn' (x : b) (i - 1) xs
 
+splitWith :: (a -> [a]) -> InContext a a -> InContext a a
+splitWith f ctxt =
+  let (s, ss) = case f (current ctxt) of
+                  [] -> (current ctxt, [])
+                  x : xs -> (x, xs)
+  in ctxt { current = s, afters = ss <> afters ctxt }

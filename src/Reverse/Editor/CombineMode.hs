@@ -1,5 +1,5 @@
 module Reverse.Editor.CombineMode
-  ( CombineInput, combineMode, cancel, help
+  ( CombineInput, combineMode, cancel
   ) where
 
 import qualified Data.List.NonEmpty as NEL
@@ -7,7 +7,6 @@ import           Reverse.Editor.Contexted
 import           Reverse.Editor.Mode
 import           Reverse.Editor.Model
 import           Reverse.Editor.Selection
-import           Reverse.ModeHelp
 
 data CombineInput
   = Combine
@@ -25,15 +24,13 @@ cancel' c =
 cancel :: CombineModel -> NormalModel
 cancel = fmap cancel'
 
-recognize' :: Monad z => z Char -> z CombineInput
-recognize' getChr = do
-  c <- getChr
-  case c of
-    'h'  -> return ExtendSelectionLeft
-    'l'  -> return ExtendSelectionRight
-    'q'  -> return Cancel
-    'c'  -> return Combine
-    _    -> recognize' getChr
+combineActionMap :: [(Char, CombineInput)]
+combineActionMap =
+  [ ('h', ExtendSelectionLeft)
+  , ('l', ExtendSelectionRight)
+  , ('q', Cancel)
+  , ('c', Combine)
+  ]
 
 react' :: CombineInput -> CombineModel -> Either NormalModel CombineModel
 react' = \case
@@ -42,16 +39,13 @@ react' = \case
   ExtendSelectionLeft -> Right . fmap backward
   ExtendSelectionRight -> Right . fmap forward
 
-combineMode :: Monad z => Mode z CombineModel NormalModel CombineInput
-combineMode =
-  Mode { recognize = recognize'
-       , react = react'
-       }
+inputHelp :: CombineInput -> String
+inputHelp _ = "..."
 
-help :: ModeHelp
-help =
-  ModeHelp { modeName = "combine"
-           , describe = fmap inputHelp . recognize'
-           } where
-  inputHelp :: CombineInput -> String
-  inputHelp _ = "..."
+combineMode :: Mode CombineModel NormalModel CombineInput
+combineMode =
+  Mode { modeName = "combine"
+       , actionMap = combineActionMap
+       , react = react'
+       , actionHelp = inputHelp
+       }

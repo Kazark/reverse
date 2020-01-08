@@ -1,12 +1,11 @@
 module Reverse.Help (printHelp) where
 
-import           Data.Char (toUpper)
-import           Data.Foldable (traverse_)
-import qualified Reverse.Editor.CombineMode as Combine
-import qualified Reverse.Editor.NormalMode as Normal
-import           Reverse.ModeHelp
-
-type Help = [ModeHelp]
+import Text.Printf (printf)
+import Data.Char (toUpper)
+import Data.Foldable (traverse_)
+import Reverse.Editor.Mode
+import Reverse.Editor.CombineMode
+import Reverse.Editor.NormalMode
 
 name :: String
 name = "Reverse"
@@ -14,21 +13,20 @@ name = "Reverse"
 tagline :: String
 tagline = "a model editor for fitting free verse to a rhythm"
 
-formatModeHelp :: ModeHelp -> [String]
+describe :: Char -> String -> String
+describe = printf "%c - %s"
+
+formatModeHelp :: Mode s o a -> [String]
 formatModeHelp h =
   fmap toUpper (modeName h) <> " MODE"
-  : describe h [' '..'~']
+  : fmap (uncurry describe . fmap (actionHelp h)) (actionMap h)
 
-help :: Help
+help :: [String]
 help =
-  [ Normal.help
-  , Combine.help
-  ]
-
-format :: Help -> [String]
-format h =
-  [ name <> " - " <> tagline
-  ] <> concatMap formatModeHelp h
+  concat [ [name <> " - " <> tagline]
+         , formatModeHelp normalMode
+         , formatModeHelp combineMode
+         ]
 
 printHelp :: IO ()
-printHelp = traverse_ putStrLn $ format help
+printHelp = traverse_ putStrLn help

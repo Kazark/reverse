@@ -1,14 +1,12 @@
 module Reverse.Editor.NormalMode
-  ( NormalInput, normalMode, ingest, help
+  ( NormalInput, normalMode, ingest
   ) where
 
-import Text.Read (readMaybe)
 import Data.List.Split (wordsBy)
 import Reverse.Editor.Contexted
 import Reverse.Editor.Mode
 import Reverse.Editor.Model
 import Reverse.Editor.Selection (select1)
-import Reverse.ModeHelp
 
 data Action
   = Split
@@ -39,13 +37,6 @@ ingest text =
                , afters = fmap Row a
                }
 
-splitWith :: (Cell -> [Cell]) -> InContext Cell Cell -> InContext Cell Cell
-splitWith f ctxt =
-  let (s, ss) = case f (current ctxt) of
-                  [] -> (current ctxt, [])
-                  x : xs -> (x, xs)
-  in ctxt { current = s, afters = ss <> afters ctxt }
-
 act :: Action -> NormalModel -> NormalModel
 act Accent = fmap $ fmap toggleAccent
 act Split = fmap $ splitWith splitCell
@@ -64,33 +55,34 @@ react' Quit _ = Left Nothing
 react' Combine model = Left $ Just $ initCombine model
 react' (Act action) model = Right $ act action model
 
-recognize' :: Monad z => z Char -> z NormalInput
-recognize' getChr = do
-  c <- getChr
-  case c of
-    'q'  -> return Quit
-    'c'  -> return Combine
-    'k'  -> return $ Act MoveUp
-    'j'  -> return $ Act MoveDown
-    'h'  -> return $ Act MoveLeft
-    'l'  -> return $ Act MoveRight
-    '\'' -> return $ Act Accent
-    's'  -> return $ Act Split
-    _    ->
-      case readMaybe [c] of
-        Just x -> return $ Act $ Divide x
-        Nothing -> recognize' getChr
+normalActionMap :: [(Char, NormalInput)]
+normalActionMap =
+  [ ('q',  Quit)
+  , ('c',  Combine)
+  , ('k',  Act MoveUp)
+  , ('j',  Act MoveDown)
+  , ('h',  Act MoveLeft)
+  , ('l',  Act MoveRight)
+  , ('\'', Act Accent)
+  , ('s',  Act Split)
+  , ('1',  Act $ Divide 1)
+  , ('2',  Act $ Divide 2)
+  , ('3',  Act $ Divide 3)
+  , ('4',  Act $ Divide 4)
+  , ('5',  Act $ Divide 5)
+  , ('6',  Act $ Divide 6)
+  , ('7',  Act $ Divide 7)
+  , ('8',  Act $ Divide 8)
+  , ('9',  Act $ Divide 9)
+  ]
 
-normalMode :: Monad z => Mode z NormalModel (Maybe CombineModel) NormalInput
+inputHelp :: NormalInput -> String
+inputHelp _ = "..."
+
+normalMode :: Mode NormalModel (Maybe CombineModel) NormalInput
 normalMode =
-  Mode { recognize = recognize'
+  Mode { modeName = "normal"
+       , actionMap = normalActionMap
        , react = react'
+       , actionHelp = inputHelp
        }
-
-help :: ModeHelp
-help =
-  ModeHelp { modeName = "normal"
-           , describe = fmap inputHelp . recognize'
-           } where
-  inputHelp :: NormalInput -> String
-  inputHelp _ = "..."

@@ -28,6 +28,19 @@ combineViewModel x =
                                )
             }
 
+recognize :: Monad z => z Char -> [(Char, a)] -> z a
+recognize getChr aMap = do
+  c <- getChr
+  case lookup c aMap of
+    Nothing -> recognize getChr aMap
+    Just x -> return x
+
+runMode :: Monad z => Mode s o a -> ModeUI z s -> s -> z o
+runMode mode ui state = do
+  redraw ui state
+  action <- recognize (userInputChar ui) (actionMap mode)
+  either return (runMode mode ui) (react mode action state)
+
 runEditor :: Monad z => ModeUI z ViewModel -> String -> z ()
 runEditor ui = runNormal . ingest where
   runNormal state = do

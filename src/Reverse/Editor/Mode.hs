@@ -1,11 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-module Reverse.Editor.Mode ( Mode(..), ModeUI(..), runMode ) where
+module Reverse.Editor.Mode ( Mode(..), ModeUI(..) ) where
 
 import Data.Functor.Contravariant (Contravariant(..))
 
-data Mode z s o a =
-  Mode { recognize :: z Char -> z a
+data Mode s o a =
+  Mode { modeName :: String
+       , actionMap :: [(Char, a)]
        , react :: a -> s -> Either o s
+       , actionHelp :: a -> String
        }
 
 data ModeUI z s
@@ -15,9 +17,3 @@ data ModeUI z s
 
 instance Contravariant (ModeUI z) where
   contramap f mui = mui { redraw = redraw mui . f }
-
-runMode :: Monad z => Mode z s o a -> ModeUI z s -> s -> z o
-runMode mode ui state = do
-  redraw ui state
-  action <- recognize mode $ userInputChar ui
-  either return (runMode mode ui) $ react mode action state
