@@ -5,7 +5,7 @@ module Reverse.UI
 
 import Data.Function ((&))
 import Data.List (intersperse)
-import Reverse.Editor.Model (Row(..), Cell(..))
+import Reverse.Editor.Model (Row(..), Cell, getCellContents, isAccented)
 import System.Console.Terminfo
 import System.Exit (die)
 import System.IO (stdin, hSetBuffering, BufferMode(NoBuffering))
@@ -34,7 +34,7 @@ maxColumns = maximum . fmap length
 
 colWidths :: [Row Cell] -> [Int]
 colWidths x =
-  let ns = fmap (fmap (length . cellContents)) x
+  let ns = fmap (fmap (length . getCellContents)) x
       lastCol = maxColumns x-1
       colSizes = fmap (\i -> fmap (indexOr0 i) ns) [0..lastCol]
   in fmap maximum colSizes
@@ -55,7 +55,7 @@ padBy x =
 
 maybeAccent :: TermEnv -> Cell -> TermOutput -> TermOutput
 maybeAccent env c =
-  if accented c
+  if isAccented c
   then embolden env
   else id
 
@@ -68,7 +68,7 @@ maybeInvert env c =
 padRow :: TermEnv -> Row (Int, UICell) -> Row TermOutput
 padRow env =
   fmap \(i, c) ->
-    formatString (cellContents $ cell c) (padBy i) ""
+    formatString (getCellContents $ cell c) (padBy i) ""
     & termText
     & maybeAccent env (cell c)
     & maybeInvert env c

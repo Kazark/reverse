@@ -4,14 +4,13 @@ module Reverse.Editor.CombineMode
 
 import qualified Data.List.NonEmpty as NEL
 import           Reverse.Editor.Contexted
-import           Reverse.Editor.Delimiter
 import           Reverse.Editor.Mode
 import           Reverse.Editor.Model
 import           Reverse.Editor.Selection
 import           Reverse.ModeHelp
 
 data CombineInput
-  = Unsplit Delim
+  = Combine
   | ExtendSelectionLeft
   | ExtendSelectionRight
   | Cancel
@@ -26,9 +25,6 @@ cancel' c =
 cancel :: CombineModel -> NormalModel
 cancel = fmap cancel'
 
-unsplit :: Delim -> InContext Cell (Selection Cell) -> InContext Cell Cell
-unsplit d c = c { current = combineWith d $ NEL.toList $ deselect $ current c }
-
 recognize' :: Monad z => z Char -> z CombineInput
 recognize' getChr = do
   c <- getChr
@@ -36,15 +32,13 @@ recognize' getChr = do
     'h'  -> return ExtendSelectionLeft
     'l'  -> return ExtendSelectionRight
     'q'  -> return Cancel
-    _    ->
-      case charToDelim c of
-        Just d -> return $ Unsplit d
-        Nothing -> recognize' getChr
+    'c'  -> return Combine
+    _    -> recognize' getChr
 
 react' :: CombineInput -> CombineModel -> Either NormalModel CombineModel
 react' = \case
   Cancel -> Left . cancel
-  (Unsplit d) -> Left . fmap (unsplit d)
+  Combine -> Left . fmap (fmap (combine . NEL.toList . deselect))
   ExtendSelectionLeft -> Right . fmap backward
   ExtendSelectionRight -> Right . fmap forward
 

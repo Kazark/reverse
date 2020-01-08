@@ -2,21 +2,22 @@ module Reverse.Editor.NormalMode
   ( NormalInput, normalMode, ingest, help
   ) where
 
+import Text.Read (readMaybe)
 import Data.List.Split (wordsBy)
 import Reverse.Editor.Contexted
-import Reverse.Editor.Delimiter
 import Reverse.Editor.Mode
 import Reverse.Editor.Model
 import Reverse.Editor.Selection (select1)
 import Reverse.ModeHelp
 
 data Action
-  = Split Delim
+  = Split
   | MoveUp
   | MoveDown
   | MoveLeft
   | MoveRight
   | Accent
+  | Divide Int
 
 data NormalInput
   = Act Action
@@ -25,8 +26,7 @@ data NormalInput
 
 splitOn :: Char -> Cell -> [Cell]
 splitOn chr curCell =
-  let mkCell cc = curCell { cellContents = cc }
-  in fmap mkCell $ wordsBy (== chr) $ cellContents curCell
+  fmap (setCellContents curCell) $ wordsBy (== chr) $ getCellContents curCell
 
 ingest :: String -> NormalModel
 ingest text =
@@ -39,19 +39,21 @@ ingest text =
                , afters = fmap Row a
                }
 
+splitWith :: (Cell -> [Cell]) -> InContext Cell Cell -> InContext Cell Cell
+splitWith f ctxt =
+  let (s, ss) = case f (current ctxt) of
+                  [] -> (current ctxt, [])
+                  x : xs -> (x, xs)
+  in ctxt { current = s, afters = ss <> afters ctxt }
+
 act :: Action -> NormalModel -> NormalModel
-act Accent ctxtd = fmap (fmap (\c -> c { accented = not (accented c) })) ctxtd
-act (Split c) ctxtd =
-  fmap (\ctxt ->
-    let (s, ss) = case splitOn (delimToChar c) (current ctxt) of
-                    [] -> (current ctxt, [])
-                    x : xs -> (x, xs)
-    in ctxt { current = s, afters = ss <> afters ctxt }
-  ) ctxtd
-act MoveUp ctxtd = before ctxtd
-act MoveDown ctxtd = after ctxtd
-act MoveLeft ctxtd = fmap before ctxtd
-act MoveRight ctxtd = fmap after ctxtd
+act Accent = fmap $ fmap toggleAccent
+act Split = fmap $ splitWith splitCell
+act MoveUp = before
+act MoveDown = after
+act MoveLeft = fmap before
+act MoveRight = fmap after
+act (Divide at) = fmap $ splitWith $ splitOffPrefixAt at
 
 initCombine :: NormalModel -> CombineModel
 initCombine = fmap (fmap select1)
@@ -61,13 +63,6 @@ react' :: NormalInput -> NormalModel
 react' Quit _ = Left Nothing
 react' Combine model = Left $ Just $ initCombine model
 react' (Act action) model = Right $ act action model
-
-recognizeSplit :: Monad z => z Char -> z NormalInput
-recognizeSplit getChr = do
-  d <- getChr
-  case charToDelim d of
-    Nothing -> recognize' getChr
-    Just d' -> return $ Act $ Split d'
 
 recognize' :: Monad z => z Char -> z NormalInput
 recognize' getChr = do
@@ -80,8 +75,11 @@ recognize' getChr = do
     'h'  -> return $ Act MoveLeft
     'l'  -> return $ Act MoveRight
     '\'' -> return $ Act Accent
-    's'  -> recognizeSplit getChr
-    _    -> recognize' getChr
+    's'  -> return $ Act Split
+    _    ->
+      case readMaybe [c] of
+        Just x -> return $ Act $ Divide x
+        Nothing -> recognize' getChr
 
 normalMode :: Monad z => Mode z NormalModel (Maybe CombineModel) NormalInput
 normalMode =
