@@ -10,8 +10,8 @@ import           Reverse.Editor.Selection
 
 data CombineInput
   = Combine
-  | ExtendSelectionLeft
-  | ExtendSelectionRight
+  | DecreaseSelection
+  | IncreaseSelection
   | Cancel
 
 cancel' :: InContext a (Selection a) -> InContext a a
@@ -26,8 +26,8 @@ cancel = fmap cancel'
 
 combineActionMap :: [(Char, CombineInput)]
 combineActionMap =
-  [ ('h', ExtendSelectionLeft)
-  , ('l', ExtendSelectionRight)
+  [ ('h', DecreaseSelection)
+  , ('l', IncreaseSelection)
   , ('q', Cancel)
   , ('c', Combine)
   ]
@@ -36,11 +36,15 @@ react' :: CombineInput -> CombineModel -> Either NormalModel CombineModel
 react' = \case
   Cancel -> Left . cancel
   Combine -> Left . fmap (fmap (combine . NEL.toList . deselect))
-  ExtendSelectionLeft -> Right . fmap backward
-  ExtendSelectionRight -> Right . fmap forward
+  DecreaseSelection -> Right . fmap backward
+  IncreaseSelection -> Right . fmap forward
 
 inputHelp :: CombineInput -> String
-inputHelp _ = "..."
+inputHelp = \case
+  Combine -> "combine the current selection"
+  DecreaseSelection -> "decrease the selection (to the left)"
+  IncreaseSelection -> "increase the selection (to the right)"
+  Cancel -> "cancel out of combine mode/switch back to normal mode"
 
 combineMode :: Mode CombineModel NormalModel CombineInput
 combineMode =

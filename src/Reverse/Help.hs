@@ -4,14 +4,14 @@ import Text.Printf (printf)
 import Data.Char (toUpper)
 import Data.Foldable (traverse_)
 import Reverse.Editor.Mode
-import Reverse.Editor.CombineMode
-import Reverse.Editor.NormalMode
+import Reverse.Editor.CombineMode (combineMode)
+import Reverse.Editor.NormalMode (normalMode)
 
 name :: String
 name = "Reverse"
 
 tagline :: String
-tagline = "a model editor for fitting free verse to a rhythm"
+tagline = "a modal editor for fitting free verse to a rhythm"
 
 describe :: Char -> String -> String
 describe = printf "%c - %s"
@@ -24,8 +24,8 @@ formatModeHelp h =
 help :: [String]
 help =
   concat [ [name <> " - " <> tagline]
-         , formatModeHelp normalMode
-         , formatModeHelp combineMode
+         , "" : formatModeHelp normalMode
+         , "" : formatModeHelp combineMode
          ]
 
 printHelp :: IO ()

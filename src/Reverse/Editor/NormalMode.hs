@@ -77,7 +77,16 @@ normalActionMap =
   ]
 
 inputHelp :: NormalInput -> String
-inputHelp _ = "..."
+inputHelp = \case
+  Quit -> "quit the program without saving"
+  Combine -> "switch into combine mode"
+  Act MoveUp -> "move the cursor up a line"
+  Act MoveDown -> "move the cursor down a line"
+  Act MoveLeft -> "move the cursor to the left"
+  Act MoveRight -> "move the cursor to the right"
+  Act Accent -> "toggle accent on the cell"
+  Act Split -> "split the (previously combined) cell"
+  Act (Divide x) -> "divide out a syllable " ++ show x ++ " characters long"
 
 normalMode :: Mode NormalModel (Maybe CombineModel) NormalInput
 normalMode =
